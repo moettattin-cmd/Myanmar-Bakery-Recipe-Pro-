@@ -1,1 +1,54 @@
+name: Build Bakery Recipe Pro APK
 
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Prepare Android project
+        run: |
+          mkdir -p android-build/www
+          cp index.html android-build/www/
+          cp icon-192.png android-build/www/
+          cp icon-512.png android-build/www/
+          cp manifest.webmanifest android-build/www/
+          cp sw.js android-build/www/
+          cd android-build
+          npm init -y
+          npm install @capacitor/core@7 @capacitor/android@7
+          npm install --save-dev @capacitor/cli@7
+          npx cap init "Bakery Recipe Pro" "com.bakeryrecipepro.app" --web-dir www
+          npx cap add android
+          npx cap sync android
+
+      - name: Build APK
+        run: |
+          cd android-build/android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bakery-Recipe-Pro-APK
+          path: android-build/android/app/build/outputs/apk/debug/app-debug.apk
